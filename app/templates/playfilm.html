@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>The films</title>
+    <link rel="shortcut icon" href="https://img.icons8.com/fluency/48/000000/movie.png" type="image/x-icon">
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel='stylesheet' type='text/css' media='screen' href="{{url_for('static', filename='playfilm.css')}}">
+</head>
+<body>
+    <div class="div_header">
+        <header class="">
+            <h3>The Films</h3>
+        </header>
+        <nav>
+            <ul class="div_header-ul">
+                <li><a href="/">Voltar</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <iframe src="https://embed.warezcdn.com/filme/{{imdb_video.imdb_id}}" frameborder="0" allowfullscreen></iframe>
+
+    <section class="div_detalhes">
+        <div>
+            <h1 class="h1_title">{{imdb_video.title}}</h1>
+            <div class="div_generos">
+                {% for generos in generos %}
+                    <p class="p_genero">{{generos.name}}</p>
+                {% endfor %}
+            </div>
+            <p>{{imdb_video.overview}}</p>
+        </div>
+        <div>
+            <img src="https://image.tmdb.org/t/p/w500{{imdb_video.backdrop_path}}" alt="">
+        </div>        
+    </section>
+
+    <h1 class="title_similares">Filmes Similares</h1>
+    <section class="div-div">
+        {% for recomendados in recomendados %}
+        {% if recomendados.poster_path != none %}
+        {% if recomendados.popularity > 30 %}
+            <a href="/movie/{{recomendados.id}}">
+                <div id="{{recomendados.id}}" onmouseenter="exibir('{{recomendados.id}}')" onmouseout="sumir('{{recomendados.id}}')">
+                    <img id="img{{recomendados.id}}" class="div_div-dados" src="https://image.tmdb.org/t/p/w154{{recomendados.poster_path}}" alt="">
+                </div>
+                <div class="div_title-film" id="div{{recomendados.id}}">
+                    <p>Assistir agora</p>
+                </div>
+            </a>
+
+        {% endif %}
+        {% endif %}
+        {% endfor %}
+    </section>
+    
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>The Films</title>
+    <link rel="shortcut icon" href="https://img.icons8.com/fluency/48/000000/movie.png" type="image/x-icon">
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link rel=stylesheet type=text/css href="{{url_for('static', filename='index.css')}}">
+</head>
+<body>
+    <div class="div_header">
+        <header class="title">
+            <h3>The Films</h3>
+        </header>
+    </div>
+    
+    <section class="section">
+        <form action="/buscar" method="POST">
+            <input type="search" name="buscar" id="search" placeholder="O que deseja assistir?">
+            <button type="submit" class="btn_submit"><img class="img_search" src="{{url_for('static', filename = 'search-icon.svg')}}" alt="icon"></button>
+        </form>
+    </section>
+    <div>
+        <div  class="div-div">
+            {% for resultados in resultados %}
+            {% if resultados.poster_path != none %}
+            {% if resultados.popularity > 30 %}
+                <a href="/movie/{{resultados.id}}">
+                    <div id="{{resultados.id}}" onmouseenter="exibir('{{resultados.id}}')" onmouseout="sumir('{{resultados.id}}')">
+                        <img class="div_div-dados" src="https://image.tmdb.org/t/p/w154{{resultados.poster_path}}" alt="">
+                        <!-- {{resultados.popularity}} -->
+
+                        <div class="div_title-film" id="div{{resultados.id}}">
+                            <p>Assistir agora</p>
+                        </div>
+                    </div>
+                </a>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+
+    <div>
+        <div class="div-div">
+            {% for filmes_pag1 in filmes_pag1 %}
+            {% if filmes_pag1.poster_path != none %}
+            {% if filmes_pag1.popularity > 50 %}
+                <a href="/movie/{{filmes_pag1.id}}" > 
+                    <div id="{{filmes_pag1.id}}" onmouseenter="exibir('{{filmes_pag1.id}}')" onmouseout="sumir('{{filmes_pag1.id}}')">
+                        <img id="img{{filmes_pag1.id}}" class="div_div-dados" src="https://image.tmdb.org/t/p/w154{{filmes_pag1.poster_path}}" alt="">
+
+                        <div class="div_title-film" id="div{{filmes_pag1.id}}">
+                            <p>Assistir agora</p>
+                        </div>
+                    </div>
+                </a>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+
+            {% for filmes_pag2 in filmes_pag2 %}
+            {% if filmes_pag2.poster_path != none %}
+            {% if filmes_pag2.popularity > 50 %}
+                <a href="/movie/{{filmes_pag2.id}}">
+                    <div id="{{filmes_pag2.id}}" onmouseenter="exibir('{{filmes_pag2.id}}')" onmouseout="sumir('{{filmes_pag2.id}}')">
+                        <img id="img{{filmes_pag2.id}}" class="div_div-dados" src="https://image.tmdb.org/t/p/w154{{filmes_pag2.poster_path}}" alt="">
+                    </div>
+                    <div class="div_title-film" id="div{{filmes_pag2.id}}">
+                        <p>Assistir agora</p>
+                    </div>
+                </a>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+
+            {% for filmes_pag3 in filmes_pag3 %}
+            {% if filmes_pag3.poster_path != none %}
+            {% if filmes_pag3.popularity > 50 %}
+                <a href="/movie/{{filmes_pag3.id}}">
+                    <div id="{{filmes_pag3.id}}" onmouseenter="exibir('{{filmes_pag3.id}}')" onmouseout="sumir('{{filmes_pag3.id}}')">
+                        <img id="img{{filmes_pag3.id}}" class="div_div-dados" src="https://image.tmdb.org/t/p/w154{{filmes_pag3.poster_path}}" alt="">
+                    </div>
+                    <div class="div_title-film" id="div{{filmes_pag3.id}}">
+                        <p>Assistir agora</p>
+                    </div>
+                </a>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <footer>
+        <div class="div_footer">
+            <h3>Termos de Uso</h3>
+            <p>O site The Films é absolutamente legal e contém apenas links (raw) apontando para outros sites de vídeos (Openload, TheVid, VideoMega, Streamango, Vidto, Vidzi, Vidlox, Flashx, Estream, entre outros (sites genéricos)), não hospedamos nenhum arquivo de mídia (avi, mkv, mpg, mpeg, vob, wmv, flv, mp4, mov, m2v, divx, xvid, 3gp, webm, ogv, ogg) protegido por direitos autorais em nosso servidor, apenas fazemos uma busca pelos links através da própria internet utilizando inteligência artificial (iA) e organizamos (embed) os vídeos em nossa página de forma facilitada para o usuário (em outras palavras, indexador automático, como por exemplo, Google e Bing). Sobre os posters (capas), são adquiridos da plataforma TMDb, junto com os respecitovs detalhes de cada obra, como sinopse, gênero(s), etc. Não nos responsabilizamos pelo uso e não garantimos a funcionalidade de arquivos disponibilizados através de links de terceiros e também não temos controle sobre as publicidades exibidas nesses links.</p>
+        </div>
+    </footer>
+
+    
+    <script src="{{url_for('static', filename='index.js')}}"></script>  
+</body>
+</html>
