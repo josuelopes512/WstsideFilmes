@@ -12,3 +12,5 @@ numpy>=1.21.2
 requests>=2.26.0
 urllib3>=1.26.6
 Werkzeug>=2.0.1
+python-dotenv==0.19.2
+SQLAlchemy==1.4.31
