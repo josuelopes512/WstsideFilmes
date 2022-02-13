@@ -1,16 +1,95 @@
-from .db import Base, SessionLocal, UUID
-
-from sqlalchemy import Column, Integer, Float, String, Boolean, DateTime, JSON, Text
-from sqlalchemy.types import Date, TypeDecorator, CHAR
-
-
 from typing import List
+from sqlalchemy import update
+from threading import Thread
 from datetime import datetime as dt
+from .db import Base, SessionLocal, UUID
 import uuid, re, json, base64, requests as req
+from sqlalchemy.types import Date, TypeDecorator, CHAR
+from sqlalchemy import Column, Integer, Float, String, Boolean, DateTime, JSON, Text
 
 from threading import Thread
 
 db = SessionLocal()
+
+def download_database(db, url_db, chave_api):
+    data = db.query(MoviesModel).first()
+    if not data:
+        for i in range(1, 83):
+            try:
+                link = f'{url_db}/trending/movie/week?api_key={chave_api}&language=pt-BR&page={i}&include_adult=true'
+                req_1 = req.get(link)
+                res = req_1.json()
+                if res:
+                    try:
+                        for j in res['results']:
+                            q = db.query(MoviesModel).filter_by(id=j['id']).first()
+                            if q:
+                                q = q.to_json()
+                                if j['id'] == q['id']:
+                                    continue
+                            db_rec = MoviesModel(**j)
+                            db.add(db_rec)
+                            db.commit()
+                    except Exception as e:
+                        print(e)
+                        break
+            except Exception as e:
+                print(e)
+                break
+    upd = Thread(target=execute_update, args=(db,), daemon=True)
+    upd.start()
+
+def execute_update(db):
+    all = db.query(MoviesModel).all()
+    list_all = [i.to_json() for i in all]
+    
+    def backdrop_path_upd(id, path):
+        while True:
+            try:
+                base64 = jpg_to_base64(path)
+                db.execute(
+                    update(MoviesModel).where(MoviesModel.id == id).values(backdrop_path=base64)
+                )
+                db.commit()
+                # print(id, path)
+                break
+            except Exception as e:
+                print(e, id, path, 'backdrop_path')
+                continue
+
+    def poster_path_upd(id, path):
+        while True:
+            try:
+                base64 = jpg_to_base64(path)
+                db.execute(
+                    update(MoviesModel).where(MoviesModel.id == id).values(poster_path=base64)
+                )
+                db.commit()
+                # print(id, path)
+                break
+            except Exception as e:
+                print(e, id, path, 'poster_path')
+                continue
+
+    for i in list_all:
+        try:
+            id = i['id']
+            backdrop_path_var = i['backdrop_path']
+            poster_path_var = i['poster_path']
+            if len(backdrop_path_var) == 32:
+                x = Thread(target=backdrop_path_upd, args=(id, backdrop_path_var,), daemon=True)
+                x.start()
+                x.join()
+                del x
+            if len(poster_path_var) == 32 :
+                x = Thread(target=poster_path_upd, args=(id, poster_path_var,), daemon=True)
+                x.start()
+                x.join()
+                del x
+        except:
+            continue
+
+
 class GUID(TypeDecorator):
     """Platform-independent GUID type.
     Uses PostgreSQL's UUID type, otherwise uses
