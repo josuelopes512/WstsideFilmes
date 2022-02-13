@@ -20,6 +20,7 @@ chave_api = os.getenv('API_KEY')
 url_db = 'https://api.themoviedb.org/3'
 conn = engine.connect()
 
+
 @app.before_first_request
 def create_tables():
     movies.Base.metadata.create_all(bind=engine)
@@ -58,6 +59,7 @@ def index():
         base64 = b64
     )
 
+
 @app.route("/buscar",methods=['POST'])
 def buscar():
     print(request)
@@ -76,6 +78,7 @@ def buscar():
             x = 'req'
     print(resultadosdabusca, f"{buscador}", x)
     return render_template('index.html', resultados = resultadosdabusca, tipodebusca=x)
+
 
 @app.route("/movie/<movie_id>", methods=['GET'])
 def movie(movie_id):
