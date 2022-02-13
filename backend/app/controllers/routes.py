@@ -1,6 +1,6 @@
 
 import os, requests
-
+from threading import Thread, enumerate
 from requests.api import request
 from app import app
 
@@ -23,35 +23,16 @@ conn = engine.connect()
 @app.before_first_request
 def create_tables():
     movies.Base.metadata.create_all(bind=engine)
-    data = adb.query(movies.MoviesModel).first()
-    if not data:
-        for i in range(1, 83):
-            try:
-                link = f'{url_db}/trending/movie/week?api_key={chave_api}&language=pt-BR&page={i}&include_adult=true'
-                req_1 = requests.get(link)
-                res = req_1.json()
-                if res:
-                    try:
-                        for j in res['results']:
-                            q = adb.query(movies.MoviesModel).filter_by(id=j['id']).first()
-                            if q:
-                                q = q.to_json()
-                                if j['id'] == q['id']:
-                                    continue
-                            db_rec = movies.MoviesModel(**j)
-                            adb.add(db_rec)
-                            adb.commit()
-                    except Exception as e:
-                        break
-            except Exception as e:
-                print(e)
-                break
+    dba = Thread(target=movies.download_database, args=(adb, url_db, chave_api,), daemon=True)
+    dba.start()
+    
+
 
 @app.route("/teste",methods=['GET','POST'])
 def teste():
     result = adb.query(MoviesModel).order_by(MoviesModel.popularity.desc()).limit(60)
     result = [i.to_json() for i in result]
-    return jsonify(result)
+    return jsonify(result, f"{enumerate()}")
 
 
 @app.route("/",methods=['GET','POST'])
