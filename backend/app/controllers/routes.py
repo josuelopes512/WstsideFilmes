@@ -43,6 +43,7 @@ def index():
         result = adb.query(MoviesModel).order_by(MoviesModel.popularity.desc()).limit(60)
         resultados_pag1 = [i.to_json() for i in result]
         b64 = True
+        x = "banco" 
         if not resultados_pag1:
             raise Exception
     except Exception as e:
@@ -53,10 +54,12 @@ def index():
             result += json_pag['results']
         resultados_pag1 = result
         b64 = False
+        x = "req" 
     return render_template('index.html', \
         filmes_pag1=resultados_pag1, \
         busca = resultadosdabusca,
-        base64 = b64
+        base64 = b64,
+        tipodebusca=x
     )
 
 
