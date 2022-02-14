@@ -1,18 +1,65 @@
 from typing import List
-from sqlalchemy import update
 from threading import Thread
+from sqlalchemy import update, event
 from datetime import datetime as dt
-from .db import Base, SessionLocal, UUID
-import uuid, re, json, base64, requests as req
-from sqlalchemy.types import Date, TypeDecorator, CHAR
+from .db import Base, SessionLocal, GUID
 from sqlalchemy import Column, Integer, Float, String, Boolean, DateTime, JSON, Text
-
-from threading import Thread
+from slugify import slugify
+from time import sleep
+import uuid, re, base64, requests as req
 
 db = SessionLocal()
 
+# def add_data_info(db, *args, **kwargs):
+#     if kwargs:
+#         all = MoviesModel.query.all()
+#         list_all = [i.to_json() for i in all]
+#         if list_all:
+#             for i in list_all:
+#                 try:
+#                     db_rec = MovieInfo(**i)
+#                     db.add(db_rec)
+#                     db.commit()
+#                     db.close()
+#                 except:
+#                     pass
+#     else:
+#         list_all = args[0]
+#         try:
+#             if type(list_all) == list:
+#                 for i in list_all:
+#                     db_rec = MovieInfo(**i)
+#                     db.add(db_rec)
+#                     db.commit()
+#                     db.close()
+#             else:
+#                 db_rec = MovieInfo(**list_all)
+#                 db.add(db_rec)
+#                 db.commit()
+#                 db.close()
+#         except:
+#             pass
+
+
+
+def download_movie_info(db, url_db, chave_api):
+    all = MoviesModel.query.all()
+    list_all = [i.to_json() for i in all]
+    if list_all:
+        for i in list_all:
+            try:
+                id_imdb = req.get(f"{url_db}/movie/{i['id']}?api_key={chave_api}&language=pt-BR")
+                imdb = id_imdb.json()
+                db_rec = MovieInfo(**imdb)
+                db.add(db_rec)
+                db.commit()
+                db.close()
+            except Exception as e:
+                print(e)
+                continue
+
 def download_database(db, url_db, chave_api):
-    data = db.query(MoviesModel).first()
+    data = MoviesModel.query.first()
     if not data:
         for i in range(1, 83):
             try:
@@ -20,119 +67,33 @@ def download_database(db, url_db, chave_api):
                 req_1 = req.get(link)
                 res = req_1.json()
                 if res:
-                    try:
-                        for j in res['results']:
-                            q = db.query(MoviesModel).filter_by(id=j['id']).first()
+                    for j in res['results']:
+                        try:
+                            q = MoviesModel.query.filter_by(id=j['id']).first()
                             if q:
-                                q = q.to_json()
-                                if j['id'] == q['id']:
-                                    continue
+                                continue
                             db_rec = MoviesModel(**j)
                             db.add(db_rec)
                             db.commit()
-                    except Exception as e:
-                        print(e)
-                        break
+                            db.close()
+                        except Exception as e:
+                            print(e)
+                            continue
             except Exception as e:
                 print(e)
-                break
-    upd = Thread(target=execute_update, args=(db,), daemon=True)
-    upd.start()
-
-def execute_update(db):
-    all = db.query(MoviesModel).all()
-    list_all = [i.to_json() for i in all]
+                continue
     
-    def backdrop_path_upd(id, path):
-        while True:
-            try:
-                base64 = jpg_to_base64(path)
-                db.execute(
-                    update(MoviesModel).where(MoviesModel.id == id).values(backdrop_path=base64)
-                )
-                db.commit()
-                # print(id, path)
-                break
-            except Exception as e:
-                print(e, id, path, 'backdrop_path')
-                continue
-
-    def poster_path_upd(id, path):
-        while True:
-            try:
-                base64 = jpg_to_base64(path)
-                db.execute(
-                    update(MoviesModel).where(MoviesModel.id == id).values(poster_path=base64)
-                )
-                db.commit()
-                # print(id, path)
-                break
-            except Exception as e:
-                print(e, id, path, 'poster_path')
-                continue
-
-    for i in list_all:
-        try:
-            id = i['id']
-            backdrop_path_var = i['backdrop_path']
-            poster_path_var = i['poster_path']
-            if len(backdrop_path_var) == 32:
-                x = Thread(target=backdrop_path_upd, args=(id, backdrop_path_var,), daemon=True)
-                x.start()
-                x.join()
-                del x
-            if len(poster_path_var) == 32 :
-                x = Thread(target=poster_path_upd, args=(id, poster_path_var,), daemon=True)
-                x.start()
-                x.join()
-                del x
-        except:
-            continue
-
-
-class GUID(TypeDecorator):
-    """Platform-independent GUID type.
-    Uses PostgreSQL's UUID type, otherwise uses
-    CHAR(32), storing as stringified hex values.
-    """
-    impl = CHAR
-
-    def load_dialect_impl(self, dialect):
-        if dialect.name == 'postgresql':
-            return dialect.type_descriptor(UUID())
-        else:
-            return dialect.type_descriptor(CHAR(32))
-
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return value
-        elif dialect.name == 'postgresql':
-            return str(value)
-        else:
-            if not isinstance(value, uuid.UUID):
-                return "%.32x" % uuid.UUID(value).int
-            else:
-                # hexstring
-                return "%.32x" % value.int
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return value
-        else:
-            if not isinstance(value, uuid.UUID):
-                value = uuid.UUID(value)
-            return value
-
-def slugify(text):
-    pattern = r'[^\w+]'
-    return re.sub(pattern, '-', text)
+    # upd = Thread(target=execute_update, args=(db,), daemon=True)
+    # upd.start()
+    
+    upd_2 = Thread(target=download_movie_info, args=(db,url_db, chave_api,), daemon=True)
+    upd_2.start()
 
 def jpg_to_base64(link):
-    if '.jpg' in link:
+    if '.jpg' in link[-4:] and '/' in link[0]:
         img = req.get(f'https://image.tmdb.org/t/p/w154{link}')
         data = base64.b64encode(img.content).decode('utf-8')
         return data
-    return link
 
 class MoviesModel(Base):
     __tablename__ = "movies"
@@ -141,14 +102,16 @@ class MoviesModel(Base):
     uuid = Column(GUID(), default=uuid.uuid4)
     adult = Column('adult', Boolean)
     backdrop_path = Column('backdrop_path', String)
+    backdrop_b64 = Column('backdrop_b64', String)
     genre_ids = Column('genre_ids', JSON)
-    # id_movie = Column('id_movie', Integer)
     original_language = Column('original_language', String)
     original_title = Column('original_title', Text)
     overview = Column('overview', Text)
     poster_path = Column('poster_path', String)
+    poster_b64 = Column('poster_b64', String)
     release_date = Column('release_date', String)
     title = Column('title', Text)
+    slug = Column(String)
     video = Column('video', Boolean)
     vote_average = Column('vote_average', Float)
     vote_count = Column('vote_count', Integer)
@@ -159,12 +122,12 @@ class MoviesModel(Base):
 
     def __init__(self, *args, **kwargs) -> None:
         self.setAllWithEval(kwargs)
-        self.generate_slug()
-        # self.convert_to_base64()
 
     def setAllWithEval(self, kwargs):
         for key in kwargs.keys():
             if key not in ('uuid', 'created_at', 'updated_at'):
+                # if key in ('backdrop_path', 'poster_path'):
+                #     kwargs[key] = jpg_to_base64(kwargs[key])
                 setattr(self, key, kwargs[key])
     
     def to_json(self):
@@ -173,11 +136,13 @@ class MoviesModel(Base):
             "uuid": f"{self.uuid}",
             "adult": self.adult,
             "backdrop_path": self.backdrop_path,
+            "backdrop_b64": self.backdrop_b64,
             "genre_ids": self.genre_ids,
             "original_language": self.original_language,
             "original_title": self.original_title,
             "overview": self.overview,
             "poster_path": self.poster_path,
+            "poster_b64": self.poster_b64,
             "release_date": self.release_date,
             "title": self.title,
             "video": self.video,
@@ -189,28 +154,18 @@ class MoviesModel(Base):
             "updated_at": f"{self.updated_at}"
         }
 
-    def generate_slug(self):
-        if self.title:
-            self.slug = slugify(self.title.lower())
-        else:
-            self.slug = str(self.uuid).lower()
-    
-    def convert_to_base64(self):
-        if self.backdrop_path:
-            self.backdrop_path = jpg_to_base64(self.backdrop_path)
-        if self.poster_path:
-            self.poster_path = jpg_to_base64(self.poster_path)
-    
     def __repr__(self) -> str:
         return f"MoviesModel(id={self.id}, \
             uuid={self.uuid}, \
             adult={self.adult}, \
             backdrop_path={self.backdrop_path}, \
+            backdrop_b64={self.backdrop_b64}, \
             genre_ids={self.genre_ids}, \
             original_language={self.original_language}, \
             original_title={self.original_title}, \
             overview={self.overview}, \
             poster_path={self.poster_path}, \
+            poster_b64={self.poster_b64}, \
             release_date={self.release_date}, \
             title={self.title}, \
             video={self.video}, \
@@ -220,6 +175,21 @@ class MoviesModel(Base):
             media_type={self.media_type}, \
             created_at={self.created_at}, \
             updated_at={self.updated_at})"
+
+    @staticmethod
+    def generate_b64_backdrop(target, value, oldvalue, initiator):
+        if value and (not target.backdrop_b64 or value != oldvalue):
+            target.backdrop_b64 = jpg_to_base64(value)
+
+    @staticmethod
+    def generate_b64_poster(target, value, oldvalue, initiator):
+        if value and (not target.poster_b64 or value != oldvalue):
+            target.poster_b64 = jpg_to_base64(value)
+
+    @staticmethod
+    def generate_slug(target, value, oldvalue, initiator):
+        if value and (not target.slug or value != oldvalue):
+            target.slug = slugify(value)
     
     @classmethod
     def find_by_title(cls, title) -> "MoviesModel":
@@ -244,8 +214,12 @@ class MoviesModel(Base):
     def delete_from_db(self) -> None:
         db.delete(self)
         db.commit()
-    
-    
+
+
+event.listen(MoviesModel.title, 'set', MoviesModel.generate_slug, retval=False)
+event.listen(MoviesModel.poster_path, 'set', MoviesModel.generate_b64_poster, retval=False)
+event.listen(MoviesModel.backdrop_path, 'set', MoviesModel.generate_b64_backdrop, retval=False)
+
 class MovieInfo(Base):
     __tablename__ = "movie_info"
 
@@ -283,9 +257,7 @@ class MovieInfo(Base):
                 'runtime', \
                 'spoken_languages', \
                 'status', \
-                'tagline', \
-                'created_at', \
-                'updated_at'
+                'tagline'
             ):
                 setattr(self, key, kwargs[key])
     
@@ -324,4 +296,3 @@ class MovieInfo(Base):
         tagline={self.tagline}, \
         created_at={self.created_at}, \
         updated_at={self.updated_at})"
-

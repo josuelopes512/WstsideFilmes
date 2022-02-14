@@ -24,34 +24,34 @@
     <div>
         <div  class="div-div">
             {% for resultados in resultados %}
-            {% if resultados.poster_path != none %}
-            {% if resultados.popularity > 30 %}
-            {% if tipodebusca == req or '.jpg' in resultados.poster_path%}
-                <a href="/movie/{{resultados.id}}">
-                    <div id="{{resultados.id}}" onmouseenter="exibir('{{resultados.id}}')" onmouseout="sumir('{{resultados.id}}')">
-                        <img class="div_div-dados" src="https://image.tmdb.org/t/p/w154{{resultados.poster_path}}" alt="">
-                        <!-- {{resultados.popularity}} -->
+                {% if resultados.poster_path != none %}
+                    {% if resultados.popularity > 30 %}
+                        {% if tipodebusca == req%}
+                            <a href="/movie/{{resultados.id}}">
+                                <div id="{{resultados.id}}" onmouseenter="exibir('{{resultados.id}}')" onmouseout="sumir('{{resultados.id}}')">
+                                    <img class="div_div-dados" src="https://image.tmdb.org/t/p/w154{{resultados.poster_path}}" alt="">
+                                    <!-- {{resultados.popularity}} -->
 
-                        <div class="div_title-film" id="div{{resultados.id}}">
-                            <p>{{resultados.title}}</p>
-                            <p>Assistir agora</p>
-                        </div>
-                    </div>
-                </a>
-            {% else %}
-                <a href="/movie/{{resultados.id}}">
-                    <div id="{{resultados.id}}" onmouseenter="exibir('{{resultados.id}}')" onmouseout="sumir('{{resultados.id}}')">
-                        <img class="div_div-dados" src="data:image/jpeg;base64, {{resultados.poster_path}}" alt="">
-                        {{resultados.popularity}}
-                        <div class="div_title-film" id="div{{resultados.id}}">
-                            <p>Assistir agora</p>
-                            <p>{{resultados.title}}</p>
-                        </div>
-                    </div>
-                </a>
-            {% endif %}
-            {% endif %}
-            {% endif %}
+                                    <div class="div_title-film" id="div{{resultados.id}}">
+                                        <p>{{resultados.title}}</p>
+                                        <p>Assistir agora</p>
+                                    </div>
+                                </div>
+                            </a>
+                        {% else %}
+                            <a href="/movie/{{resultados.id}}">
+                                <div id="{{resultados.id}}" onmouseenter="exibir('{{resultados.id}}')" onmouseout="sumir('{{resultados.id}}')">
+                                    <img class="div_div-dados" src="data:image/jpeg;base64, {{resultados.poster_b64}}" alt="">
+                                    {{resultados.popularity}}
+                                    <div class="div_title-film" id="div{{resultados.id}}">
+                                        <p>Assistir agora</p>
+                                        <p>{{resultados.title}}</p>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                {% endif %}
             {% endfor %}
         </div>
     </div>
@@ -60,29 +60,27 @@
     <div>
         <div class="div-div">
             {% for filmes_pag1 in filmes_pag1 %}
-            {% if filmes_pag1.poster_path != none %}
-            {% if filmes_pag1.popularity > 50 %}
-            {% if tipodebusca == req or '.jpg' in filmes_pag1.poster_path%}
-                <a href="/movie/{{filmes_pag1.id}}" > 
-                    <div id="{{filmes_pag1.id}}" onmouseenter="exibir('{{filmes_pag1.id}}')" onmouseout="sumir('{{filmes_pag1.id}}')">
-                        <img id="img{{filmes_pag1.id}}" class="div_div-dados" src="https://image.tmdb.org/t/p/w154{{filmes_pag1.poster_path}}" alt="">
-                        <div class="div_title-film" id="div{{filmes_pag1.id}}">
-                            <p>Assistir agora</p>
-                        </div>
-                    </div>
-                </a>
-            {% else %}
-                <a href="/movie/{{filmes_pag1.id}}" > 
-                    <div id="{{filmes_pag1.id}}" onmouseenter="exibir('{{filmes_pag1.id}}')" onmouseout="sumir('{{filmes_pag1.id}}')">
-                        <img id="img{{filmes_pag1.id}}" class="div_div-dados" src="data:image/jpeg;base64, {{filmes_pag1.poster_path}}" alt="">
-                        <div class="div_title-film" id="div{{filmes_pag1.id}}">
-                            <p>Assistir agora</p>
-                        </div>
-                    </div>
-                </a>
-            {% endif %}
-            {% endif %}
-            {% endif %}
+                {% if filmes_pag1.poster_path != none %}
+                        {% if tipodebusca == req%}
+                            <a href="/movie/{{filmes_pag1.id}}" > 
+                                <div id="{{filmes_pag1.id}}" onmouseenter="exibir('{{filmes_pag1.id}}')" onmouseout="sumir('{{filmes_pag1.id}}')">
+                                    <img id="img{{filmes_pag1.id}}" class="div_div-dados" src="https://image.tmdb.org/t/p/w154{{filmes_pag1.poster_path}}" alt="">
+                                    <div class="div_title-film" id="div{{filmes_pag1.id}}">
+                                        <p>Assistir agora</p>
+                                    </div>
+                                </div>
+                            </a>
+                        {% else %}
+                            <a href="/movie/{{filmes_pag1.id}}" > 
+                                <div id="{{filmes_pag1.id}}" onmouseenter="exibir('{{filmes_pag1.id}}')" onmouseout="sumir('{{filmes_pag1.id}}')">
+                                    <img id="img{{filmes_pag1.id}}" class="div_div-dados" src="data:image/jpeg;base64, {{filmes_pag1.poster_b64}}" alt="">
+                                    <div class="div_title-film" id="div{{filmes_pag1.id}}">
+                                        <p>Assistir agora</p>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endif %}
+                {% endif %}
             {% endfor %}
 
         </div>

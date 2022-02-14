@@ -1,3 +1,4 @@
+alembic==1.7.6
 certifi>=2021.5.30
 charset-normalizer>=2.0.5
 click>=8.0.1
@@ -13,4 +14,5 @@ requests>=2.26.0
 urllib3>=1.26.6
 Werkzeug>=2.0.1
 python-dotenv==0.19.2
+python-slugify==5.0.2
 SQLAlchemy==1.4.31

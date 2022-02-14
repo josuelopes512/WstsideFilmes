@@ -58,24 +58,28 @@ url_db = 'https://api.themoviedb.org/3'
 # print(data)
 
 
-all = db.query(movies.MoviesModel).all()
-list_all = [i.to_json() for i in all]
+# all = db.query(movies.MoviesModel).all()
+# list_all = [i.to_json() for i in all]
 # kgnldf = db.query(movies.MoviesModel).update(movies.MoviesModel.backdrop_path).
 # print(dir(db.query(movies.MoviesModel).update))
 
-for i in list_all:
-    if 'jpg' in i['backdrop_path'].split('.')[-1]:
-        db.execute(
-            update(movies.MoviesModel).where(movies.MoviesModel.id == i['id']).values(backdrop_path=movies.jpg_to_base64(i['backdrop_path']))
-        )
-        db.commit()
-        print(i['id'], i['backdrop_path'])
-    if 'jpg' in i['poster_path'].split('.')[-1]:
-        db.execute(
-            update(movies.MoviesModel).where(movies.MoviesModel.id == i['id']).values(poster_path=movies.jpg_to_base64(i['poster_path']))
-        )
-        db.commit()
-        print(i['id'], i['backdrop_path'])
+# for i in list_all:
+#     if 'jpg' in i['backdrop_path'].split('.')[-1]:
+#         db.execute(
+#             update(movies.MoviesModel).where(movies.MoviesModel.id == i['id']).values(backdrop_path=movies.jpg_to_base64(i['backdrop_path']))
+#         )
+#         db.commit()
+#         print(i['id'], i['backdrop_path'])
+#     if 'jpg' in i['poster_path'].split('.')[-1]:
+#         db.execute(
+#             update(movies.MoviesModel).where(movies.MoviesModel.id == i['id']).values(poster_path=movies.jpg_to_base64(i['poster_path']))
+#         )
+#         db.commit()
+#         print(i['id'], i['backdrop_path'])
     
     
 # /kjWYd2qziS18BPQs85xE6Lb3H09.jpg id=18
+
+# a = movies.MoviesModel.query.first()
+all = movies.MoviesModel.query.all()
+print([i for i in all])
