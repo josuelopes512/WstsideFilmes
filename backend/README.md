@@ -47,7 +47,7 @@
 - Instale as dependências do projeto.
   - ``` pip install -r requirements.txt```
 - Adicione o valor da [chave da api](https://www.themoviedb.org/documentation/api) na variável local.
-  - Renomeie o arquivo chamado ```.env_example``` para ```.env```
+  - Crie uma cópia do arquivo ```.env_example``` e renomeie para ```.env```
   - Adicione a chave da api fornecida pelo https://api.themoviedb.org/
   - Adicione no campo SECRET_KEY
     - Para gerar a SECRET_KEY
