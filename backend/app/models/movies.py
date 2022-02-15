@@ -6,41 +6,38 @@ from .db import Base, SessionLocal, GUID
 from sqlalchemy import Column, Integer, Float, String, Boolean, DateTime, JSON, Text
 from slugify import slugify
 from time import sleep
-import uuid, re, base64, requests as req
+import uuid, re, json, base64, requests as req
 
 db = SessionLocal()
 
-# def add_data_info(db, *args, **kwargs):
-#     if kwargs:
-#         all = MoviesModel.query.all()
-#         list_all = [i.to_json() for i in all]
-#         if list_all:
-#             for i in list_all:
-#                 try:
-#                     db_rec = MovieInfo(**i)
-#                     db.add(db_rec)
-#                     db.commit()
-#                     db.close()
-#                 except:
-#                     pass
-#     else:
-#         list_all = args[0]
-#         try:
-#             if type(list_all) == list:
-#                 for i in list_all:
-#                     db_rec = MovieInfo(**i)
-#                     db.add(db_rec)
-#                     db.commit()
-#                     db.close()
-#             else:
-#                 db_rec = MovieInfo(**list_all)
-#                 db.add(db_rec)
-#                 db.commit()
-#                 db.close()
-#         except:
-#             pass
+def save_file(path, file):
+    with open(f"./json/{path}.json", "w") as f:
+        f.write(json.dumps(file))
 
 
+def get_imdb_info(movie_id):
+    try:
+        movie_m = MoviesModel.find_by_id(int(movie_id))
+        movie_i = MovieInfo.find_by_id(int(movie_id))
+            
+        if not movie_m or not movie_i:
+            raise Exception
+        
+        movie_m = movie_m.to_json()
+        movie_i = movie_i.to_json()
+        imdb = dict()
+        
+        for k in movie_m.keys():
+            if k not in imdb:
+                imdb[k] = movie_m[k]
+
+        for k in movie_i.keys():
+            if k not in imdb:
+                imdb[k] = movie_i[k]
+    except:
+        imdb = None
+    
+    return movie_m, movie_i, imdb
 
 def download_movie_info(db, url_db, chave_api):
     all = MoviesModel.query.all()
@@ -55,7 +52,7 @@ def download_movie_info(db, url_db, chave_api):
                 db.commit()
                 db.close()
             except Exception as e:
-                print(e)
+                # print(e)
                 continue
 
 def download_database(db, url_db, chave_api):
@@ -77,10 +74,10 @@ def download_database(db, url_db, chave_api):
                             db.commit()
                             db.close()
                         except Exception as e:
-                            print(e)
+                            # print(e)
                             continue
             except Exception as e:
-                print(e)
+                # print(e)
                 continue
     
     # upd = Thread(target=execute_update, args=(db,), daemon=True)
@@ -145,6 +142,7 @@ class MoviesModel(Base):
             "poster_b64": self.poster_b64,
             "release_date": self.release_date,
             "title": self.title,
+            "slug": self.slug,
             "video": self.video,
             "vote_average": self.vote_average,
             "vote_count": self.vote_count,
@@ -168,6 +166,7 @@ class MoviesModel(Base):
             poster_b64={self.poster_b64}, \
             release_date={self.release_date}, \
             title={self.title}, \
+            slug={self.slug}, \
             video={self.video}, \
             vote_average={self.vote_average}, \
             vote_count={self.vote_count}, \
@@ -276,8 +275,8 @@ class MovieInfo(Base):
             "spoken_languages": self.spoken_languages,
             "status": self.status,
             "tagline": self.tagline,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at
+            "created_at": f"{self.created_at}",
+            "updated_at": f"{self.updated_at}"
         }
     
     def __repr__(self) -> str:
@@ -296,3 +295,55 @@ class MovieInfo(Base):
         tagline={self.tagline}, \
         created_at={self.created_at}, \
         updated_at={self.updated_at})"
+    
+    @classmethod
+    def find_by_id(cls, _id) -> "MovieInfo":
+        return cls.query.filter_by(id=_id).first()
+    
+    @classmethod
+    def find_all(cls) -> List["MovieInfo"]:
+        return cls.query.all()
+    
+    @classmethod
+    def find_limit(cls, n) -> List["MovieInfo"]:
+        return cls.query.limit(n)
+    
+    def save_to_db(self) -> None:
+        db.add(self)
+        db.commit()
+
+    def delete_from_db(self) -> None:
+        db.delete(self)
+        db.commit()
+
+
+
+# def add_data_info(db, *args, **kwargs):
+#     if kwargs:
+#         all = MoviesModel.query.all()
+#         list_all = [i.to_json() for i in all]
+#         if list_all:
+#             for i in list_all:
+#                 try:
+#                     db_rec = MovieInfo(**i)
+#                     db.add(db_rec)
+#                     db.commit()
+#                     db.close()
+#                 except:
+#                     pass
+#     else:
+#         list_all = args[0]
+#         try:
+#             if type(list_all) == list:
+#                 for i in list_all:
+#                     db_rec = MovieInfo(**i)
+#                     db.add(db_rec)
+#                     db.commit()
+#                     db.close()
+#             else:
+#                 db_rec = MovieInfo(**list_all)
+#                 db.add(db_rec)
+#                 db.commit()
+#                 db.close()
+#         except:
+#             pass
