@@ -16,7 +16,7 @@ from time import sleep
 app.session= scoped_session(SessionLocal, scopefunc=_app_ctx_stack.__ident_func__)
 adb = SessionLocal()
 
-chave_api = os.getenv('API_KEY')
+chave_api = os.environ['API_KEY']
 app.secret_key  = os.getenv('SECRET_KEY')
 url_db = 'https://api.themoviedb.org/3'
 conn = engine.connect()
