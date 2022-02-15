@@ -36,8 +36,7 @@ def teste(movie_id, slug):
         result = MoviesModel.find_by_id(movie_id)
     except:
         result = None
-    # adb.close()
-    # result = [i.to_json() for i in result]    
+
     return render_template('base.html', posts=result)
 
 
@@ -59,13 +58,12 @@ def index():
             pag = requests.get(f'{url_db}/trending/movie/week?api_key={chave_api}&language=pt-BR&page={i}&include_adult=true')
             json_pag = pag.json()
             result += json_pag['results']
+        for i in result:
+            i['slug'] = movies.slugify(i['title'])
         resultados_pag1 = result
         x = "req"
         b64 = False
-        
-        with open('teste.json', 'a') as f:
-            f.write(json.dumps(resultados_pag1))
-    # return render_template('index.html')
+    # movies.save_file("resultados_pag1", resultados_pag1)
     return render_template('index.html', \
         filmes_pag1=resultados_pag1, \
         busca = resultadosdabusca,
@@ -89,24 +87,46 @@ def buscar():
         busca = requests.get(f"{url_db}/search/movie?api_key={chave_api}&language=pt-BR&page=1&include_adult=false&query={buscador}")
         buscaEmJson = busca.json()
         resultadosdabusca = buscaEmJson['results']
+        for i in resultadosdabusca:
+            i['slug'] = movies.slugify(i['title'])
         x = 'req'
     return render_template('index.html', resultados = resultadosdabusca, tipodebusca=x)
 
 
-@app.route("/movie/<movie_id>", methods=['GET'])
-def movie(movie_id):
-    id_imdb = requests.get(f"{url_db}/movie/{movie_id}?api_key={chave_api}&language=pt-BR")
-    imdb = id_imdb.json()
-    # try:
-    #     q = MovieInfo.query.filter_by(id=imdb['id']).first().to_json()
-    # except:
-    #     q = None
-    # if not q:
-    #     Thread(target=movies.add_data_info, args=(adb, imdb,)).start()
-    generos = ['genres']
+@app.route("/movie/<movie_id>/<slug>", methods=['GET'])
+def movie(movie_id, slug):
+    try:
+        movie_m, movie_i, imdb = movies.get_imdb_info(movie_id)
+        if not movie_m or not movie_i:
+            raise Exception
+        # movies.save_file("imdb2", imdb)
+    except:
+        id_imdb = requests.get(f"{url_db}/movie/{movie_id}?api_key={chave_api}&language=pt-BR")
+        imdb = id_imdb.json()
+        try:
+            if not movie_m:
+                db_rec = MoviesModel(**imdb)
+                db_rec.save_to_db()
+            if not movie_i:
+                db_rec = MovieInfo(**imdb)
+                db_rec.save_to_db()
+            _, _, imdb = movies.get_imdb_info(movie_id)
+        except:
+            pass
+    
+    generos = imdb['genres']
+    
 
     recomendados = requests.get(f"{url_db}/movie/{movie_id}/similar?api_key={chave_api}&language=pt-BR&page=1")
     filmes_recomendados = recomendados.json()
     frecomendados = filmes_recomendados['results']
-    return render_template('playfilm.html', recomendados = frecomendados,generos = generos,imdb_video = imdb)
+    for i in frecomendados:
+        i['slug'] = movies.slugify(i['title'])
+    
+    
+    return render_template('playfilm.html', \
+        recomendados = frecomendados, \
+        generos = generos, \
+        imdb_video = imdb
+    )
 

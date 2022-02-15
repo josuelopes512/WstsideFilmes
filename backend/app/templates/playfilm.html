@@ -42,7 +42,7 @@
         {% for recomendados in recomendados %}
         {% if recomendados.poster_path != none %}
         {% if recomendados.popularity > 30 %}
-            <a href="/movie/{{recomendados.id}}">
+            <a href="/movie/{{recomendados.id}}/{{recomendados.slug}}">
                 <div id="{{recomendados.id}}" onmouseenter="exibir('{{recomendados.id}}')" onmouseout="sumir('{{recomendados.id}}')">
                     <img id="img{{recomendados.id}}" class="div_div-dados" src="https://image.tmdb.org/t/p/w154{{recomendados.poster_path}}" alt="">
                 </div>
