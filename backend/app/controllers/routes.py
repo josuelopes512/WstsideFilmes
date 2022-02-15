@@ -17,6 +17,7 @@ app.session= scoped_session(SessionLocal, scopefunc=_app_ctx_stack.__ident_func_
 adb = SessionLocal()
 
 chave_api = os.getenv('API_KEY')
+app.secret_key  = os.getenv('SECRET_KEY')
 url_db = 'https://api.themoviedb.org/3'
 conn = engine.connect()
 

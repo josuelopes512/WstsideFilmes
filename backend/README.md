@@ -49,6 +49,12 @@
 - Adicione o valor da [chave da api](https://www.themoviedb.org/documentation/api) na variável local.
   - Renomeie o arquivo chamado ```.env_example``` para ```.env```
   - Adicione a chave da api fornecida pelo https://api.themoviedb.org/
+  - Adicione no campo SECRET_KEY
+    - Para gerar a SECRET_KEY
+    - ```python -c 'import secrets; print(secrets.token_hex())'```
+  - Adicione no campo DEBUG_MODE
+    - True -  para o modo de produção
+    - False -  para o modo de desenvolvimento
   - Adicione no campo API_KEY
 
 - Execute o projeto.
