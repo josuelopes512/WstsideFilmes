@@ -4,7 +4,7 @@ from pprint import pprint
 from app.models.db import SessionLocal, engine
 from app.models import movies
 from time import sleep
-from sqlalchemy import update
+from sqlalchemy import update, text, select
 
 import base64
 
@@ -81,5 +81,40 @@ url_db = 'https://api.themoviedb.org/3'
 # /kjWYd2qziS18BPQs85xE6Lb3H09.jpg id=18
 
 # a = movies.MoviesModel.query.first()
-all = movies.MoviesModel.query.all()
-print([i for i in all])
+# all = movies.MoviesModel.query.all()
+# print([i for i in all])
+
+# teste = movies.MoviesModel.query.select_from(movies.MovieInfo).first()
+movies_m = movies.MoviesModel
+movies_i = movies.MovieInfo
+
+# teste = db.query(movies_i, movies_m).join(movies_i, movies_i.id==movies_m.id).all()
+# teste = db.query(movies_m, movies_i).join(movies_i, movies_m.id==movies_i.id)
+# teste = db.execute(text(str(teste))).fetchone()
+# a = [i[0].to_json() for i in teste]
+# teste = db.query(movies.MoviesModel).join(movies.MovieInfo, movies.MoviesModel.id==movies.MovieInfo.id).all()
+# teste = movies_m.quer
+# y.select_from(movies_i).all()
+# print(a)
+# with open('teste.json', 'w') as f:
+#     f.write(json.dumps(teste))
+# teste = movies_m.query.join(movies_i, movies_m.id==movies_i.id)
+# print(teste.first().to_json())
+
+try:
+    movie_m = movies_m.find_by_id(634649).to_json()
+    print(movie_m.get('slug', None))
+except Exception as e:
+    print(e)
+# movie_i = movies_i.find_by_id(id=634649).first()
+# result = dict()
+
+# for k in movie_m.keys():
+#     if k not in result:
+#         result[k] = movie_m[k]
+
+# for k in movie_i.keys():
+#     if k not in result:
+#         result[k] = movie_i[k]
+
+# print(result)
