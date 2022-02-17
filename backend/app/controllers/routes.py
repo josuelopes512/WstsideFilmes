@@ -4,7 +4,7 @@ from threading import Thread, enumerate
 from requests.api import request
 from app import app
 
-from flask import render_template, request, _app_ctx_stack, jsonify
+from flask import render_template, request, _app_ctx_stack, jsonify, Response
 from ..models.movies import MoviesModel, MovieInfo
 from ..models.db import SessionLocal, engine
 from sqlalchemy.orm import scoped_session
@@ -16,7 +16,8 @@ from time import sleep
 app.session= scoped_session(SessionLocal, scopefunc=_app_ctx_stack.__ident_func__)
 adb = SessionLocal()
 
-chave_api = os.environ['API_KEY']
+# chave_api = os.environ['API_KEY']
+chave_api = os.getenv('API_KEY')
 app.secret_key  = os.getenv('SECRET_KEY')
 url_db = 'https://api.themoviedb.org/3'
 conn = engine.connect()
@@ -27,7 +28,18 @@ def create_tables():
     movies.Base.metadata.create_all(bind=engine)
     dba = Thread(target=movies.download_database, args=(adb, url_db, chave_api,), daemon=True)
     dba.start()
+
+@app.route("/player",methods=['GET','POST'])
+def player_movie():
+    req = requests.get('https://embed.warezcdn.com/filme/tt6856242')
+    excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+    # print(req.raw.headers)
+    # headers = [(name, value) for (name, value) in  req.raw.headers.items() if name.lower() not in excluded_headers]
+    headers = [(name, value) for (name, value) in  req.headers.items() if name.lower() not in excluded_headers]
+    res = Response(req.content, req.status_code, headers)
+    # https://embed.warezcdn.com/filme/tt6856242
     
+    return res
 
 
 @app.route("/teste/<movie_id>/<slug>",methods=['GET','POST'])
@@ -56,9 +68,16 @@ def index():
         print("EXCEPTION")
         result = []
         for i in range(1, 4):
-            pag = requests.get(f'{url_db}/trending/movie/week?api_key={chave_api}&language=pt-BR&page={i}&include_adult=true')
-            json_pag = pag.json()
-            result += json_pag['results']
+            try:
+                pag = requests.get(f'{url_db}/trending/movie/week?api_key={chave_api}&language=pt-BR&page={i}&include_adult=true')
+                json_pag = pag.json()
+                result += json_pag['results']
+            except:
+                if not chave_api:
+                    break
+                continue
+        if not result:
+            return {}, 400
         for i in result:
             i['slug'] = movies.slugify(i['title'])
         resultados_pag1 = result
@@ -112,8 +131,8 @@ def movie(movie_id, slug):
                 db_rec = MovieInfo(**imdb)
                 db_rec.save_to_db()
             _, _, imdb = movies.get_imdb_info(movie_id)
-        except:
-            pass
+        except Exception as e:
+            return {"Exception": f"{e}"}, 400
     
     generos = imdb['genres']
     
@@ -123,7 +142,6 @@ def movie(movie_id, slug):
     frecomendados = filmes_recomendados['results']
     for i in frecomendados:
         i['slug'] = movies.slugify(i['title'])
-    
     
     return render_template('playfilm.html', \
         recomendados = frecomendados, \

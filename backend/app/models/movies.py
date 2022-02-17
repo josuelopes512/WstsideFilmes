@@ -56,8 +56,9 @@ def download_movie_info(db, url_db, chave_api):
                 continue
 
 def download_database(db, url_db, chave_api):
-    data = MoviesModel.query.first()
-    if not data:
+    data_first = MoviesModel.query.first()
+    data_all = MoviesModel.query.all()
+    if not data_first or len(data_all) < 1640:
         for i in range(1, 83):
             try:
                 link = f'{url_db}/trending/movie/week?api_key={chave_api}&language=pt-BR&page={i}&include_adult=true'
@@ -108,6 +109,7 @@ class MoviesModel(Base):
     poster_b64 = Column('poster_b64', String)
     release_date = Column('release_date', String)
     title = Column('title', Text)
+    title_norm = Column(Text)
     slug = Column(String)
     video = Column('video', Boolean)
     vote_average = Column('vote_average', Float)
@@ -142,6 +144,7 @@ class MoviesModel(Base):
             "poster_b64": self.poster_b64,
             "release_date": self.release_date,
             "title": self.title,
+            "title_norm": self.title_norm,
             "slug": self.slug,
             "video": self.video,
             "vote_average": self.vote_average,
@@ -166,6 +169,7 @@ class MoviesModel(Base):
             poster_b64={self.poster_b64}, \
             release_date={self.release_date}, \
             title={self.title}, \
+            title_norm={self.title_norm}, \
             slug={self.slug}, \
             video={self.video}, \
             vote_average={self.vote_average}, \
@@ -189,6 +193,11 @@ class MoviesModel(Base):
     def generate_slug(target, value, oldvalue, initiator):
         if value and (not target.slug or value != oldvalue):
             target.slug = slugify(value)
+    
+    @staticmethod
+    def generate_title_norm(target, value, oldvalue, initiator):
+        if value and (not target.slug or value != oldvalue):
+            target.title_norm = (slugify(value)).replace("-", " ")
     
     @classmethod
     def find_by_title(cls, title) -> "MoviesModel":
@@ -216,8 +225,10 @@ class MoviesModel(Base):
 
 
 event.listen(MoviesModel.title, 'set', MoviesModel.generate_slug, retval=False)
+event.listen(MoviesModel.title_norm, 'set', MoviesModel.generate_title_norm, retval=False)
 event.listen(MoviesModel.poster_path, 'set', MoviesModel.generate_b64_poster, retval=False)
 event.listen(MoviesModel.backdrop_path, 'set', MoviesModel.generate_b64_backdrop, retval=False)
+
 
 class MovieInfo(Base):
     __tablename__ = "movie_info"

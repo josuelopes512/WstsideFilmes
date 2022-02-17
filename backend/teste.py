@@ -100,12 +100,20 @@ movies_i = movies.MovieInfo
 #     f.write(json.dumps(teste))
 # teste = movies_m.query.join(movies_i, movies_m.id==movies_i.id)
 # print(teste.first().to_json())
+# data = movies_m.query.all()
+# data = movies_m.find_by_title("homem aranha")
 
-try:
-    movie_m = movies_m.find_by_id(634649).to_json()
-    print(movie_m.get('slug', None))
-except Exception as e:
-    print(e)
+
+# search = 'homem-aranha'
+# data = movies_m.query.filter(movies_m.title.ilike(f'%{search}%')).first()
+# print(data)
+
+
+# try:
+#     movie_m = movies_m.find_by_id(634649).to_json()
+#     print(movie_m.get('slug', None))
+# except Exception as e:
+#     print(e)
 # movie_i = movies_i.find_by_id(id=634649).first()
 # result = dict()
 
