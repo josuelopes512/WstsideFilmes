@@ -65,7 +65,7 @@ def index():
         b64 = True
         print("BANCO")
     except Exception as e:
-        print("EXCEPTION")
+        print(f"EXCEPTION: {e}")
         result = []
         for i in range(1, 4):
             try:
