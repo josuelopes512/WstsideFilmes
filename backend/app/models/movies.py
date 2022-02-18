@@ -7,6 +7,10 @@ from sqlalchemy import Column, Integer, Float, String, Boolean, DateTime, JSON, 
 from slugify import slugify
 from time import sleep
 import uuid, re, json, base64, requests as req
+from tinydb import TinyDB, Query
+
+db_nosql = TinyDB('./database/db.json')
+db_nosql_2 = TinyDB('./database/db_2.json')
 
 db = SessionLocal()
 
@@ -40,47 +44,77 @@ def get_imdb_info(movie_id):
     return movie_m, movie_i, imdb
 
 def download_movie_info(db, url_db, chave_api):
+    db_cache = db_nosql_2.all()
     all = MoviesModel.query.all()
     list_all = [i.to_json() for i in all]
-    if list_all:
+    if list_all and len(db_cache) < 82:
+        db_nosql_2.truncate()
+        data_cache = []
         for i in list_all:
             try:
                 id_imdb = req.get(f"{url_db}/movie/{i['id']}?api_key={chave_api}&language=pt-BR")
                 imdb = id_imdb.json()
-                db_rec = MovieInfo(**imdb)
-                db.add(db_rec)
-                db.commit()
-                db.close()
+                if imdb:
+                    data_cache.append(imdb)
+                    # db_nosql_2.insert(imdb)
             except Exception as e:
-                # print(e)
+                print(e)
                 continue
+    db_nosql_2.insert_multiple(data_cache)
+    del data_cache
+    db_cache = db_nosql_2.all()
+    objects_sql = []
+    for imdb in db_cache:
+        try:
+            db_rec = MovieInfo(**imdb)
+            objects_sql.append(db_rec)
+        except Exception as e:
+            print(e)
+            continue
+    if objects_sql:
+        print("CHEGOU AQUI")
+        db.add_all(objects_sql)
+        print("CHEGOU AQUI 1")
+        db.commit()
+        print("CHEGOU AQUI 2")
+        db.close()
+    print("COMPLETE 100%")
 
 def download_database(db, url_db, chave_api):
     data_first = MoviesModel.query.first()
     data_all = MoviesModel.query.all()
-    if not data_first or len(data_all) < 1640:
+    db_cache = db_nosql.all()
+    if not data_first or len(data_all) < 1640 or len(db_cache) < 82:
+        if len(db_cache) < 82 and not len(db_cache) == 0:
+            db_nosql.truncate()
+        data_cache = []        
         for i in range(1, 83):
             try:
                 link = f'{url_db}/trending/movie/week?api_key={chave_api}&language=pt-BR&page={i}&include_adult=true'
                 req_1 = req.get(link)
                 res = req_1.json()
                 if res:
-                    for j in res['results']:
-                        try:
-                            q = MoviesModel.query.filter_by(id=j['id']).first()
-                            if q:
-                                continue
-                            db_rec = MoviesModel(**j)
-                            db.add(db_rec)
-                            db.commit()
-                            db.close()
-                        except Exception as e:
-                            # print(e)
-                            continue
-            except Exception as e:
-                # print(e)
+                    data_cache.append(res)
+            except:
+                print(e)
                 continue
-    
+        db_nosql.insert_multiple(data_cache)
+        del data_cache
+    db_cache = db_nosql.all()
+    for res in db_cache:
+        for j in res['results']:
+            try:
+                q = MoviesModel.query.filter_by(id=j['id']).first()
+                if q:
+                    continue
+                db_rec = MoviesModel(**j)
+                db.add(db_rec)
+                db.commit()
+            except Exception as e:
+                print(e)
+                continue
+        db.close()
+
     # upd = Thread(target=execute_update, args=(db,), daemon=True)
     # upd.start()
     
@@ -92,6 +126,11 @@ def jpg_to_base64(link):
         img = req.get(f'https://image.tmdb.org/t/p/w154{link}')
         data = base64.b64encode(img.content).decode('utf-8')
         return data
+
+def normalized(string):
+    string = slugify(string)
+    string = string.replace('-', ' ')
+    return string
 
 class MoviesModel(Base):
     __tablename__ = "movies"
@@ -108,8 +147,8 @@ class MoviesModel(Base):
     poster_path = Column('poster_path', String)
     poster_b64 = Column('poster_b64', String)
     release_date = Column('release_date', String)
-    title = Column('title', Text)
     title_norm = Column(Text)
+    title = Column('title', Text)
     slug = Column(String)
     video = Column('video', Boolean)
     vote_average = Column('vote_average', Float)
@@ -125,8 +164,6 @@ class MoviesModel(Base):
     def setAllWithEval(self, kwargs):
         for key in kwargs.keys():
             if key not in ('uuid', 'created_at', 'updated_at'):
-                # if key in ('backdrop_path', 'poster_path'):
-                #     kwargs[key] = jpg_to_base64(kwargs[key])
                 setattr(self, key, kwargs[key])
     
     def to_json(self):
@@ -196,8 +233,8 @@ class MoviesModel(Base):
     
     @staticmethod
     def generate_title_norm(target, value, oldvalue, initiator):
-        if value and (not target.slug or value != oldvalue):
-            target.title_norm = (slugify(value)).replace("-", " ")
+        if value and (not target.title_norm or value != oldvalue):
+            target.title_norm = normalized(value)
     
     @classmethod
     def find_by_title(cls, title) -> "MoviesModel":
@@ -225,7 +262,7 @@ class MoviesModel(Base):
 
 
 event.listen(MoviesModel.title, 'set', MoviesModel.generate_slug, retval=False)
-event.listen(MoviesModel.title_norm, 'set', MoviesModel.generate_title_norm, retval=False)
+event.listen(MoviesModel.title, 'set', MoviesModel.generate_title_norm, retval=False)
 event.listen(MoviesModel.poster_path, 'set', MoviesModel.generate_b64_poster, retval=False)
 event.listen(MoviesModel.backdrop_path, 'set', MoviesModel.generate_b64_backdrop, retval=False)
 
