@@ -9,12 +9,12 @@ from sqlalchemy import update, text, select
 import base64
 
 
-db = SessionLocal()
+# db = SessionLocal()
 
-movies.Base.metadata.create_all(bind=engine)
+# movies.Base.metadata.create_all(bind=engine)
 
-chave_api = 'f28e3f905e9b24469a4f70b894e618e3'
-url_db = 'https://api.themoviedb.org/3'
+# chave_api = 'f28e3f905e9b24469a4f70b894e618e3'
+# url_db = 'https://api.themoviedb.org/3'
 
 # req_1 = populares_pag1 = req.get(f'{url_db}/trending/movie/week?api_key={chave_api}&language=pt-BR&page=2&include_adult=true')
 # res = req_1.json()
@@ -85,8 +85,8 @@ url_db = 'https://api.themoviedb.org/3'
 # print([i for i in all])
 
 # teste = movies.MoviesModel.query.select_from(movies.MovieInfo).first()
-movies_m = movies.MoviesModel
-movies_i = movies.MovieInfo
+# movies_m = movies.MoviesModel
+# movies_i = movies.MovieInfo
 
 # teste = db.query(movies_i, movies_m).join(movies_i, movies_i.id==movies_m.id).all()
 # teste = db.query(movies_m, movies_i).join(movies_i, movies_m.id==movies_i.id)
@@ -126,3 +126,24 @@ movies_i = movies.MovieInfo
 #         result[k] = movie_i[k]
 
 # print(result)
+
+
+
+
+from tinydb import TinyDB, Query
+from pprint import pprint
+
+db_nosql = TinyDB('database/db.json')
+# db_nosql.insert({'teste': 'valor'})
+# db_nosql.insert({'teste': 'valor'})
+data = db_nosql.all()
+
+# print(list(data)[0])
+# for i in range(1, len(data)):
+# db_nosql.drop_table('_default')
+print(data)
+db_nosql.drop_table('_default')
+# x = []
+# for i in range(1, len(data)+1):
+#     x.append("jbsdjbf")
+# print(len(x))
