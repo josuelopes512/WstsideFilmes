@@ -5,12 +5,16 @@ from datetime import datetime as dt
 from .db import Base, SessionLocal, GUID
 from sqlalchemy import Column, Integer, Float, String, Boolean, DateTime, JSON, Text
 from slugify import slugify
-from time import sleep
+from time import sleep, time
 import uuid, re, json, base64, requests as req
 from tinydb import TinyDB, Query
+from pprint import pprint
+import os
 
 db_nosql = TinyDB('./database/db.json')
 db_nosql_2 = TinyDB('./database/db_2.json')
+
+PAGES = int(os.environ['QTD_PAGES'])
 
 db = SessionLocal()
 
@@ -18,6 +22,16 @@ def save_file(path, file):
     with open(f"./json/{path}.json", "w") as f:
         f.write(json.dumps(file))
 
+def jpg_to_base64(link):
+    if '.jpg' in link[-4:] and '/' in link[0]:
+        img = req.get(f'https://image.tmdb.org/t/p/w154{link}')
+        data = base64.b64encode(img.content).decode('utf-8')
+        return data
+
+def normalized(string):
+    string = slugify(string)
+    string = string.replace('-', ' ')
+    return string
 
 def get_imdb_info(movie_id):
     try:
@@ -47,73 +61,99 @@ def download_movie_info(db, url_db, chave_api):
     db_cache = db_nosql_2.all()
     all = MoviesModel.query.all()
     list_all = [i.to_json() for i in all]
-    if list_all and len(db_cache) < 82:
+    
+    data_cache = []
+    if list_all and len(db_cache) < (PAGES-1):
         db_nosql_2.truncate()
-        data_cache = []
         for i in list_all:
             try:
                 id_imdb = req.get(f"{url_db}/movie/{i['id']}?api_key={chave_api}&language=pt-BR")
                 imdb = id_imdb.json()
                 if imdb:
                     data_cache.append(imdb)
-                    # db_nosql_2.insert(imdb)
             except Exception as e:
                 print(e)
                 continue
-    db_nosql_2.insert_multiple(data_cache)
-    del data_cache
+        db_nosql_2.insert_multiple(data_cache)
+        del data_cache
+
     db_cache = db_nosql_2.all()
     objects_sql = []
+    count = 0
     for imdb in db_cache:
         try:
+            if count >= 1:
+                db.add_all(objects_sql)
+                db.commit()
+                print("COMMIT")
+                db.close()
+                objects_sql = []
+                count = 0
+            q = MovieInfo.query.filter_by(id=imdb['id']).first()
+            if q:
+                continue
             db_rec = MovieInfo(**imdb)
             objects_sql.append(db_rec)
+            count += 1
         except Exception as e:
             print(e)
             continue
-    if objects_sql:
-        print("CHEGOU AQUI")
-        db.add_all(objects_sql)
-        print("CHEGOU AQUI 1")
-        db.commit()
-        print("CHEGOU AQUI 2")
-        db.close()
-    print("COMPLETE 100%")
+
+    del objects_sql
+    del count
+    print("END COMMAND")
 
 def download_database(db, url_db, chave_api):
-    data_first = MoviesModel.query.first()
+    # data_first = MoviesModel.query.first()
     data_all = MoviesModel.query.all()
-    db_cache = db_nosql.all()
-    if not data_first or len(data_all) < 1640 or len(db_cache) < 82:
-        if len(db_cache) < 82 and not len(db_cache) == 0:
+
+    # print(not data_first, len(data_all) < 1640, len(db_cache) < 82)
+    if len(data_all) < 1640:
+        db_cache = db_nosql.all()
+        if len(db_cache) < (PAGES-1): # and not len(db_cache) == 0:
             db_nosql.truncate()
-        data_cache = []        
-        for i in range(1, 83):
-            try:
-                link = f'{url_db}/trending/movie/week?api_key={chave_api}&language=pt-BR&page={i}&include_adult=true'
-                req_1 = req.get(link)
-                res = req_1.json()
-                if res:
-                    data_cache.append(res)
-            except:
-                print(e)
-                continue
-        db_nosql.insert_multiple(data_cache)
-        del data_cache
-    db_cache = db_nosql.all()
-    for res in db_cache:
-        for j in res['results']:
-            try:
-                q = MoviesModel.query.filter_by(id=j['id']).first()
-                if q:
+            
+            data_cache = []        
+            for i in range(1, PAGES+1):
+                try:
+                    link = f'{url_db}/trending/movie/week?api_key={chave_api}&language=pt-BR&page={i}&include_adult=true'
+                    req_1 = req.get(link)
+                    res = req_1.json()
+                    if res:
+                        data_cache.append(res)
+                except:
+                    print(e)
                     continue
-                db_rec = MoviesModel(**j)
-                db.add(db_rec)
-                db.commit()
-            except Exception as e:
-                print(e)
-                continue
-        db.close()
+            db_nosql.insert_multiple(data_cache)
+            del data_cache
+            db_cache = db_nosql.all()
+        print("Caiu Aqui")
+        
+        count = 0
+        objects_sql = []
+        for res in db_cache:
+            for j in res['results']:
+                try:
+                    if count >= 1:
+                        db.add_all(objects_sql)
+                        db.commit()
+                        print("COMMIT")
+                        db.close()
+                        count = 0
+                        objects_sql = []
+                    q = MoviesModel.query.filter_by(id=j['id']).first()
+                    if q:
+                        continue
+                    objects_sql.append(MoviesModel(**j))
+                    count += 1
+                except Exception as e:
+                    print(f"Exception -- download_database -- db insert -- MoviesModel  {e}")
+                    continue
+        print("Caiu Aqui 1")
+        del objects_sql
+        del db_cache
+        del count
+
 
     # upd = Thread(target=execute_update, args=(db,), daemon=True)
     # upd.start()
@@ -121,16 +161,7 @@ def download_database(db, url_db, chave_api):
     upd_2 = Thread(target=download_movie_info, args=(db,url_db, chave_api,), daemon=True)
     upd_2.start()
 
-def jpg_to_base64(link):
-    if '.jpg' in link[-4:] and '/' in link[0]:
-        img = req.get(f'https://image.tmdb.org/t/p/w154{link}')
-        data = base64.b64encode(img.content).decode('utf-8')
-        return data
 
-def normalized(string):
-    string = slugify(string)
-    string = string.replace('-', ' ')
-    return string
 
 class MoviesModel(Base):
     __tablename__ = "movies"
