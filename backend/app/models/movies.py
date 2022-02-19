@@ -1,15 +1,15 @@
 from typing import List
-from threading import Thread
-from sqlalchemy import update, event
-from datetime import datetime as dt
-from .db import Base, SessionLocal, GUID
-from sqlalchemy import Column, Integer, Float, String, Boolean, DateTime, JSON, Text
+from pprint import pprint
 from slugify import slugify
 from time import sleep, time
-import uuid, re, json, base64, requests as req
+from threading import Thread
 from tinydb import TinyDB, Query
-from pprint import pprint
-import os
+from datetime import datetime as dt
+from sqlalchemy import update, event
+from .db import Base, SessionLocal, GUID
+from sqlalchemy import Column, Integer, Float, String, Boolean, DateTime, Text, JSON
+
+import os, uuid, re, json, base64, requests as req
 
 db_nosql = TinyDB('./database/db.json')
 db_nosql_2 = TinyDB('./database/db_2.json')
@@ -160,7 +160,6 @@ def download_database(db, url_db, chave_api):
     
     upd_2 = Thread(target=download_movie_info, args=(db,url_db, chave_api,), daemon=True)
     upd_2.start()
-
 
 
 class MoviesModel(Base):
