@@ -6,20 +6,55 @@ from threading import Thread
 from tinydb import TinyDB, Query
 from datetime import datetime as dt
 from sqlalchemy import update, event
+from sqlalchemy.orm import relationship
 from .db import Base, SessionLocal, GUID
-from sqlalchemy import Column, Integer, Float, String, Boolean, DateTime, Text, JSON
+from sqlalchemy import Column, ForeignKey, Integer, Float, String, Boolean, DateTime, Text, JSON
 
 import os, uuid, re, json, base64, requests as req
+
+from dotenv import load_dotenv
+load_dotenv('.env')
 
 db_nosql = TinyDB('./database/db.json')
 db_nosql_2 = TinyDB('./database/db_2.json')
 
-PAGES = int(os.environ['QTD_PAGES'])
+PAGES = int(os.getenv('QTD_PAGES'))
 
 db = SessionLocal()
 
+def insert_all_db(movie_id, url_db, chave_api):
+    movie_m = MoviesModel.find_by_id(int(movie_id))
+    movie_i = MovieInfo.find_by_id(int(movie_id))
+    if movie_i and movie_m:
+        return movie_m.to_json(), movie_i.to_json()
+        
+    movie_i_req = req.get(f"{url_db}/movie/{movie_id}?api_key={chave_api}&language=pt-BR")
+    movie_i = movie_i_req.json()
+
+def insert_to_db(data):
+    try:
+        movies_f = [MoviesModel(**i) for i in data]
+        db.add_all(movies_f)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        for i in data:
+            print(i)
+            id = MoviesModel.find_by_id(i['id'])
+            if id:
+                continue
+            if 'media_type' not in i:
+                i['media_type'] = "movie"
+            try:
+                movies_f = MoviesModel(**i)
+                movies_f.save_to_db()
+            except Exception as e:
+                db.rollback()
+                print(f"EXCEPT 2 ----- movie_id: {i['id']} ----- insert_to_db ----- {e}")
+                continue
+
 def save_file(path, file):
-    with open(f"./json/{path}.json", "w") as f:
+    with open(f"./database/{path}.json", "w") as f:
         f.write(json.dumps(file))
 
 def jpg_to_base64(link):
@@ -56,6 +91,34 @@ def get_imdb_info(movie_id):
         imdb = None
     
     return movie_m, movie_i, imdb
+
+def recommended_movies(url_db, chave_api):
+    data_all = MoviesModel.query.all()
+    list_all = [i.to_json() for i in data_all]
+    all_ids = [i['id'] for i in list_all]
+    
+    for movie_id in all_ids:
+        for j in list_all:
+            try:
+                if movie_id == j['id']:
+                    id = MoviesModel.find_by_id(movie_id)
+                    if id:
+                        continue
+                    if not j['recommended']:
+                        recomendados = req.get(f"{url_db}/movie/{movie_id}/similar?api_key={chave_api}&language=pt-BR&page=1")
+                        filmes_json = recomendados.json()
+                        filmes_json = filmes_json['results']
+                        ids = [id['id'] for id in filmes_json]
+                        MoviesModel.update_recommended_by_id(_id=movie_id, value=ids)
+                        del filmes_json
+                        del recomendados
+                        del ids
+            except Exception as e:
+                print("ERRO {e}")
+                continue
+    del data_all
+    del list_all
+    del all_ids
 
 def download_movie_info(db, url_db, chave_api):
     db_cache = db_nosql_2.all()
@@ -96,12 +159,12 @@ def download_movie_info(db, url_db, chave_api):
             objects_sql.append(db_rec)
             count += 1
         except Exception as e:
+            db.rollback()
             print(e)
             continue
 
     del objects_sql
     del count
-    print("END COMMAND")
 
 def download_database(db, url_db, chave_api):
     # data_first = MoviesModel.query.first()
@@ -127,7 +190,6 @@ def download_database(db, url_db, chave_api):
             db_nosql.insert_multiple(data_cache)
             del data_cache
             db_cache = db_nosql.all()
-        print("Caiu Aqui")
         
         count = 0
         objects_sql = []
@@ -147,9 +209,9 @@ def download_database(db, url_db, chave_api):
                     objects_sql.append(MoviesModel(**j))
                     count += 1
                 except Exception as e:
+                    db.rollback()
                     print(f"Exception -- download_database -- db insert -- MoviesModel  {e}")
                     continue
-        print("Caiu Aqui 1")
         del objects_sql
         del db_cache
         del count
@@ -160,7 +222,9 @@ def download_database(db, url_db, chave_api):
     
     upd_2 = Thread(target=download_movie_info, args=(db,url_db, chave_api,), daemon=True)
     upd_2.start()
-
+    
+    upd_3 = Thread(target=recommended_movies, args=(url_db, chave_api,), daemon=True)
+    upd_3.start()
 
 class MoviesModel(Base):
     __tablename__ = "movies"
@@ -184,6 +248,7 @@ class MoviesModel(Base):
     vote_average = Column('vote_average', Float)
     vote_count = Column('vote_count', Integer)
     popularity = Column('popularity', Float)
+    recommended = Column(JSON)
     media_type = Column('media_type', String)
     created_at = Column('created_at', DateTime, default=dt.now())
     updated_at = Column('updated_at', DateTime, default=dt.now())
@@ -218,6 +283,7 @@ class MoviesModel(Base):
             "vote_count": self.vote_count,
             "popularity": self.popularity,
             "media_type": self.media_type,
+            "recommended": self.recommended,
             "created_at": f"{self.created_at}",
             "updated_at": f"{self.updated_at}"
         }
@@ -243,6 +309,7 @@ class MoviesModel(Base):
             vote_count={self.vote_count}, \
             popularity={self.popularity}, \
             media_type={self.media_type}, \
+            recommended={self.recommended}, \
             created_at={self.created_at}, \
             updated_at={self.updated_at})"
 
@@ -251,11 +318,16 @@ class MoviesModel(Base):
         if value and (not target.backdrop_b64 or value != oldvalue):
             target.backdrop_b64 = jpg_to_base64(value)
 
+    # @staticmethod
+    # def generate_recommended(target, value, oldvalue, initiator):
+    #     if value and (not target.recommended or value != oldvalue):
+    #         target.recommended = jpg_to_base64(value)
+    
     @staticmethod
     def generate_b64_poster(target, value, oldvalue, initiator):
         if value and (not target.poster_b64 or value != oldvalue):
             target.poster_b64 = jpg_to_base64(value)
-
+    
     @staticmethod
     def generate_slug(target, value, oldvalue, initiator):
         if value and (not target.slug or value != oldvalue):
@@ -265,6 +337,11 @@ class MoviesModel(Base):
     def generate_title_norm(target, value, oldvalue, initiator):
         if value and (not target.title_norm or value != oldvalue):
             target.title_norm = normalized(value)
+    
+    @classmethod
+    def find_by_word(cls, word) -> "MoviesModel":
+        movies = db.query(cls).filter(cls.title_norm.like(f"%{word}%")).all()
+        return movies
     
     @classmethod
     def find_by_title(cls, title) -> "MoviesModel":
@@ -282,10 +359,22 @@ class MoviesModel(Base):
     def find_limit(cls, n) -> List["MoviesModel"]:
         return cls.query.limit(n)
     
+    @classmethod
+    def update_recommended_by_id(cls, _id, value) -> None:
+        movie = db.query(cls).filter(cls.id == _id).first()
+        movie.recommended = value
+        db.commit()
+    
+    def commit_db(self) -> None:
+        db.commit()
+    
+    def close_db(self) -> None:
+        db.close()
+    
     def save_to_db(self) -> None:
         db.add(self)
         db.commit()
-
+    
     def delete_from_db(self) -> None:
         db.delete(self)
         db.commit()
@@ -394,6 +483,33 @@ class MovieInfo(Base):
         db.delete(self)
         db.commit()
 
+
+class MoviesRecommended(Base):
+    __tablename__ = "movies_recommended"
+    __table_args__ = {'sqlite_autoincrement': True}
+    
+    id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True)
+    recommended = Column(JSON)
+    
+    @classmethod
+    def find_by_id(cls, _id) -> "MoviesRecommended":
+        return cls.query.filter_by(id=_id).first()
+    
+    @classmethod
+    def find_all(cls) -> List["MoviesRecommended"]:
+        return cls.query.all()
+    
+    @classmethod
+    def find_limit(cls, n) -> List["MoviesRecommended"]:
+        return cls.query.limit(n)
+
+    def save_to_db(self) -> None:
+        db.add(self)
+        db.commit()
+
+    def delete_from_db(self) -> None:
+        db.delete(self)
+        db.commit()
 
 
 # def add_data_info(db, *args, **kwargs):

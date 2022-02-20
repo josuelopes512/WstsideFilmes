@@ -4,8 +4,6 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-
-from app.models.db import Base
 from app.models.movies import *
 
 

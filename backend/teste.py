@@ -2,7 +2,7 @@ import requests as req
 import os, json
 from pprint import pprint
 from app.models.db import SessionLocal, engine
-from app.models import movies
+from app.models import movies, db
 from time import sleep
 from sqlalchemy import update, text, select
 
@@ -85,7 +85,7 @@ import base64
 # print([i for i in all])
 
 # teste = movies.MoviesModel.query.select_from(movies.MovieInfo).first()
-# movies_m = movies.MoviesModel
+movies_m = movies.MoviesModel
 # movies_i = movies.MovieInfo
 
 # teste = db.query(movies_i, movies_m).join(movies_i, movies_i.id==movies_m.id).all()
@@ -130,20 +130,74 @@ import base64
 
 
 
-from tinydb import TinyDB, Query
-from pprint import pprint
+# from tinydb import TinyDB, Query
+# from pprint import pprint
 
-db_nosql = TinyDB('database/db.json')
-# db_nosql.insert({'teste': 'valor'})
-# db_nosql.insert({'teste': 'valor'})
-data = db_nosql.all()
+# db_nosql = TinyDB('database/db.json')
+# # db_nosql.insert({'teste': 'valor'})
+# # db_nosql.insert({'teste': 'valor'})
+# data = db_nosql.all()
 
-# print(list(data)[0])
-# for i in range(1, len(data)):
+# # print(list(data)[0])
+# # for i in range(1, len(data)):
+# # db_nosql.drop_table('_default')
+# print(data)
 # db_nosql.drop_table('_default')
-print(data)
-db_nosql.drop_table('_default')
-# x = []
-# for i in range(1, len(data)+1):
-#     x.append("jbsdjbf")
-# print(len(x))
+# # x = []
+# # for i in range(1, len(data)+1):
+# #     x.append("jbsdjbf")
+# # print(len(x))
+
+# movies_m.update_by_id(11, ['a', 'b', 'c'])
+
+# movies_m.update_by_id(11, {11: ['a', 'b', 'c']})
+# movies_m_q = movies_m.find_by_id(11)
+
+# movies_m_q = movies.db.query(movies_m).filter(movies_m.id==11).first()
+# movies_m.update_recommended_by_id(_id= 11, value=[1414, 2514, 8878])
+
+
+# recomendados = movies_m.find_by_id(11).to_json()
+# print(recomendados['recommended'])
+
+
+# movies_m_q_2 = movies_m_q_2.find_by_id(11)
+# # print(movies_m_q)
+# print(movies_m_q_2)
+# # movies_m_q.recommended = {11: ["a", "b", "c"]}
+# movies_m_q_2.recommended = {11: ["a", "b", "c"]}
+# movies_m_q_2.commit_db()
+
+
+# print(dir(movies.db))
+
+# movies.db.commit()
+# movies_m_q.commit_db()
+# movies_m_q.close_db()
+
+# print(movies_m_q)
+# movies.db.commit()
+
+# print(dir(movies_m_q.query.update))
+# print(movies_m_q.recommended)
+# movies_m_q.commit_db()
+# del movies_m_q
+# movies_m_q = movies_m.find_by_id(11)
+# print(movies_m_q)
+# db.query(movies_m).filter(movies_m.id==11).first()
+
+# print(dir(movies_m.query.filter_by(id=11).values)) #.values(recommended=['a', 'b', 'c'])
+
+
+# movies_f = movies_m.find_by_word('homem aranha')
+# movies_f = [i.to_json() for i in movies_f]
+
+# for i in movies_f:
+#     print(i['title_norm'])
+
+# # print(movies_f)
+
+id = movies_m.find_by_id(487242)
+# id = movies_m.find_by_id(297761)
+if not id:
+    print(id)
